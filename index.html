@@ -339,9 +339,12 @@ function render(){
   let active = 0, savings = 0, trialCount = 0;
   subs.forEach(s=>{
     if(s.cycle === 'trial'){
-      trialCount++;
-      if(daysLeft(s.date) < 0 && s.status === 'active'){
+      const trialExpiredAndRenewed = daysLeft(s.date) < 0 && s.status === 'active';
+      if(trialExpiredAndRenewed){
+        // 試用期已過且使用者選擇續訂 -> 視為付費訂閱，不再計入「試用中服務數量」
         active += monthlyTWD({...s, cycle:'monthly'});
+      } else {
+        trialCount++;
       }
       return;
     }

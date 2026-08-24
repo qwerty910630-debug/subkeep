@@ -333,6 +333,7 @@ function fmtTWD(n){
 }
 
 function render(){
+  advanceOverdueDates();
   // dashboard
   let active = 0, savings = 0, trialCount = 0;
   subs.forEach(s=>{
@@ -425,6 +426,29 @@ function toggleStatus(id){
   s.status = s.status === 'active' ? 'cancel_pending' : 'active';
   saveSubs(subs);
   render();
+}
+
+function advanceOverdueDates(){
+  let anyChanged = false;
+  subs.forEach(s=>{
+    if(s.status !== 'active' || s.cycle === 'trial') return;
+    let d = parseDate(s.date);
+    const today = todayStart();
+    let itemChanged = false;
+    while(d < today){
+      if(s.cycle === 'yearly') d.setFullYear(d.getFullYear() + 1);
+      else d.setMonth(d.getMonth() + 1);
+      itemChanged = true;
+    }
+    if(itemChanged){
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      s.date = `${yyyy}-${mm}-${dd}`;
+      anyChanged = true;
+    }
+  });
+  if(anyChanged) saveSubs(subs);
 }
 
 function deleteSub(id){

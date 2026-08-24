@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SubKeep · 訂閱存摺</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Noto+Sans+TC:wght@400;500;700;900&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#16213D;
+    --ink-2:#1E2C4F;
+    --paper:#EFE7D0;
+    --paper-2:#E6DCC0;
+    --text-on-paper:#241F14;
+    --text-on-paper-dim:#5C5440;
+    --text-on-ink:#F3EEDD;
+    --text-on-ink-dim:#9AA3BF;
+    --teal:#1F7A5C;
+    --plum:#7A4869;
+    --steel:#3D6B8C;
+    --amber:#C98A2E;
+    --red:#B23A3A;
+    --line:#C9BE9C;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--ink);
+    background-image:
+      radial-gradient(circle at 15% 10%, rgba(255,255,255,0.04), transparent 40%),
+      radial-gradient(circle at 85% 90%, rgba(255,255,255,0.03), transparent 40%);
+    font-family:'Noto Sans TC', sans-serif;
+    color:var(--text-on-ink);
+    min-height:100vh;
+    padding:32px 16px 80px;
+  }
+  .display{font-family:'Space Grotesk','Noto Sans TC',sans-serif;}
+  .mono{font-family:'IBM Plex Mono',monospace;}
+
+  .wrap{max-width:920px;margin:0 auto;}
+
+  /* ===== Header ===== */
+  header{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:28px;flex-wrap:wrap;}
+  .brand{display:flex;align-items:center;gap:12px;}
+  .stub-mark{
+    width:38px;height:38px;border-radius:8px;
+    background:linear-gradient(135deg,var(--teal),var(--steel));
+    display:flex;align-items:center;justify-content:center;
+    font-family:'Space Grotesk';font-weight:700;color:var(--ink);
+    box-shadow:0 4px 14px rgba(31,122,92,0.35);
+    flex-shrink:0;
+  }
+  h1{font-size:24px;margin:0;letter-spacing:0.5px;font-weight:700;}
+  .tagline{margin:2px 0 0;font-size:13px;color:var(--text-on-ink-dim);}
+  .add-btn{
+    background:var(--teal);color:#f3f1e6;border:none;
+    padding:12px 20px;border-radius:10px;font-size:14px;font-weight:700;
+    cursor:pointer;display:flex;align-items:center;gap:8px;
+    box-shadow:0 6px 16px rgba(31,122,92,0.3);
+    transition:transform .15s ease, box-shadow .15s ease;
+  }
+  .add-btn:hover{transform:translateY(-1px);box-shadow:0 8px 20px rgba(31,122,92,0.4);}
+  .add-btn:active{transform:translateY(0);}
+
+  /* ===== Passbook panel ===== */
+  .passbook{
+    background:var(--paper);
+    border-radius:16px;
+    box-shadow:0 20px 50px rgba(0,0,0,0.35), inset 0 0 0 1px rgba(0,0,0,0.05);
+    overflow:hidden;
+  }
+  .perf{
+    height:16px;
+    background-image: radial-gradient(circle, var(--ink) 4px, transparent 4.5px);
+    background-size: 22px 16px;
+    background-position: 8px 8px;
+    background-repeat: repeat-x;
+  }
+
+  /* ===== Dashboard ===== */
+  .dash{padding:26px 26px 10px;}
+  .dash-title{
+    font-size:11px;letter-spacing:2px;text-transform:uppercase;
+    color:var(--text-on-paper-dim);font-weight:700;margin:0 0 14px;
+  }
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
+  .stat{
+    background:var(--paper-2);
+    border-radius:10px;padding:16px 16px 14px;
+    border-left:4px solid var(--teal);
+    position:relative;
+  }
+  .stat.savings{border-left-color:var(--plum);}
+  .stat.trial{border-left-color:var(--steel);}
+  .stat-label{font-size:12px;color:var(--text-on-paper-dim);font-weight:500;margin-bottom:6px;}
+  .stat-value{font-size:22px;font-weight:600;color:var(--text-on-paper);letter-spacing:0.3px;}
+  .stat.savings .stat-value{color:var(--plum);}
+  .stat.trial .stat-value{color:var(--steel);}
+
+  /* ===== List ===== */
+  .list{padding:20px 26px 30px;display:flex;flex-direction:column;gap:14px;}
+  .empty{
+    text-align:center;padding:50px 20px;color:var(--text-on-paper-dim);
+  }
+  .empty-title{font-weight:700;color:var(--text-on-paper);margin-bottom:6px;font-size:15px;}
+
+  /* Ticket card */
+  .ticket{
+    display:flex;
+    background:#fff;
+    border-radius:12px;
+    box-shadow:0 2px 8px rgba(0,0,0,0.08);
+    overflow:hidden;
+    position:relative;
+    transition:opacity .2s ease, filter .2s ease;
+  }
+  .ticket.pending{filter:grayscale(0.55);opacity:0.75;}
+  .ticket-main{flex:1;padding:16px 18px;min-width:0;}
+  .ticket-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px;}
+  .service-name{font-size:16px;font-weight:700;color:var(--text-on-paper);}
+  .cycle-tag{
+    font-size:11px;padding:2px 8px;border-radius:20px;
+    background:#EEF1F6;color:#556;font-weight:500;
+  }
+  .badge{
+    font-size:11px;padding:3px 9px;border-radius:20px;font-weight:700;color:#fff;
+  }
+  .badge.warn{background:var(--amber);}
+  .badge.danger{background:var(--red);}
+  .badge.expired{background:#8B4444;}
+  .badge.trial{background:var(--steel);}
+  .meta-row{font-size:13px;color:var(--text-on-paper-dim);}
+  .meta-row .amt{color:var(--text-on-paper);font-weight:600;}
+
+  .ticket-stub{
+    width:150px;flex-shrink:0;
+    border-left:2px dashed #D8D2BE;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    padding:14px 10px;gap:10px;
+    background:#FBF9F2;
+    position:relative;
+  }
+  .stub-amount{font-size:17px;font-weight:600;color:var(--text-on-paper);text-align:center;}
+  .stub-amount small{display:block;font-size:10px;font-weight:500;color:var(--text-on-paper-dim);margin-top:2px;}
+
+  .toggle{
+    position:relative;width:44px;height:24px;border-radius:20px;
+    background:#D3CDB6;cursor:pointer;border:none;padding:0;flex-shrink:0;
+    transition:background .2s ease;
+  }
+  .toggle.on{background:var(--teal);}
+  .toggle .knob{
+    position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;
+    background:#fff;transition:left .2s ease;box-shadow:0 1px 3px rgba(0,0,0,0.3);
+  }
+  .toggle.on .knob{left:23px;}
+  .toggle-label{font-size:10px;color:var(--text-on-paper-dim);font-weight:600;letter-spacing:0.5px;}
+
+  .icon-row{display:flex;gap:6px;margin-top:2px;}
+  .icon-btn{
+    border:none;background:transparent;cursor:pointer;font-size:12px;
+    color:var(--text-on-paper-dim);padding:3px 6px;border-radius:6px;
+    display:flex;align-items:center;gap:3px;
+  }
+  .icon-btn:hover{background:#EFEAD8;color:var(--text-on-paper);}
+  .icon-btn.danger-hover:hover{color:var(--red);background:#FBEAEA;}
+
+  .stamp{
+    position:absolute;top:8px;right:8px;
+    font-size:10px;font-weight:700;color:#B23A3A;
+    border:1.5px solid #B23A3A;border-radius:5px;padding:2px 6px;
+    transform:rotate(8deg);letter-spacing:1px;opacity:0.85;
+  }
+
+  /* ===== Modal ===== */
+  .overlay{
+    position:fixed;inset:0;background:rgba(10,14,30,0.6);
+    display:none;align-items:center;justify-content:center;z-index:50;padding:16px;
+    backdrop-filter:blur(2px);
+  }
+  .overlay.show{display:flex;}
+  .modal{
+    background:var(--paper);border-radius:14px;max-width:420px;width:100%;
+    padding:24px 24px 22px;box-shadow:0 20px 60px rgba(0,0,0,0.5);
+    max-height:90vh;overflow-y:auto;
+  }
+  .modal h2{margin:0 0 16px;font-size:17px;color:var(--text-on-paper);}
+  .field{margin-bottom:14px;}
+  .field label{display:block;font-size:12px;font-weight:700;color:var(--text-on-paper-dim);margin-bottom:5px;}
+  .field input, .field select{
+    width:100%;padding:9px 11px;border-radius:8px;border:1.5px solid var(--line);
+    background:#fff;font-size:14px;color:var(--text-on-paper);font-family:inherit;
+  }
+  .field input:focus, .field select:focus{outline:2px solid var(--teal);outline-offset:1px;border-color:var(--teal);}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .error-text{color:var(--red);font-size:12px;margin-top:4px;display:none;}
+  .error-text.show{display:block;}
+  .modal-actions{display:flex;gap:10px;margin-top:18px;}
+  .btn{
+    flex:1;padding:11px;border-radius:9px;border:none;font-weight:700;font-size:14px;cursor:pointer;
+  }
+  .btn.primary{background:var(--teal);color:#fff;}
+  .btn.ghost{background:transparent;color:var(--text-on-paper-dim);border:1.5px solid var(--line);}
+
+  @media (max-width:520px){
+    .stats{grid-template-columns:1fr;}
+    .ticket{flex-direction:column;}
+    .ticket-stub{width:100%;border-left:none;border-top:2px dashed #D8D2BE;flex-direction:row;justify-content:space-between;}
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{transition:none !important;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <div class="stub-mark display">S</div>
+      <div>
+        <h1>SubKeep 訂閱存摺</h1>
+        <p class="tagline">把每一筆自動扣款，記在自己看得到的地方</p>
+      </div>
+    </div>
+    <button class="add-btn" onclick="openModal()">＋ 新增訂閱</button>
+  </header>
+
+  <div class="passbook">
+    <div class="perf"></div>
+    <div class="dash">
+      <p class="dash-title">本月結算</p>
+      <div class="stats">
+        <div class="stat">
+          <div class="stat-label">續訂中每月總額</div>
+          <div class="stat-value mono" id="statActive">TWD 0</div>
+        </div>
+        <div class="stat savings">
+          <div class="stat-label">打算取消・預計節省</div>
+          <div class="stat-value mono" id="statSavings">TWD 0</div>
+        </div>
+        <div class="stat trial">
+          <div class="stat-label">試用中服務數量</div>
+          <div class="stat-value mono" id="statTrial">0</div>
+        </div>
+      </div>
+    </div>
+    <div class="list" id="list"></div>
+  </div>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <h2 id="modalTitle">新增訂閱</h2>
+    <form id="subForm" novalidate>
+      <input type="hidden" id="editId">
+      <div class="field">
+        <label for="fName">服務名稱</label>
+        <input type="text" id="fName" placeholder="例如：Netflix">
+        <div class="error-text" id="errName">請輸入服務名稱</div>
+      </div>
+      <div class="row2">
+        <div class="field">
+          <label for="fAmount">金額</label>
+          <input type="text" id="fAmount" inputmode="decimal" placeholder="390">
+          <div class="error-text" id="errAmount">金額必須為大於 0 的數字</div>
+        </div>
+        <div class="field">
+          <label for="fCurrency">幣別</label>
+          <select id="fCurrency">
+            <option value="TWD">TWD</option>
+            <option value="USD">USD</option>
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label for="fCycle">週期</label>
+        <select id="fCycle" onchange="onCycleChange()">
+          <option value="monthly">按月</option>
+          <option value="yearly">按年</option>
+          <option value="trial">免費試用</option>
+        </select>
+      </div>
+      <div class="field">
+        <label id="dateLabel" for="fDate">下次扣款日</label>
+        <input type="date" id="fDate">
+        <div class="error-text" id="errDate">請選擇日期</div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn ghost" onclick="closeModal()">取消</button>
+        <button type="submit" class="btn primary">儲存</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+const FX_USD_TO_TWD = 32;
+const STORAGE_KEY = 'subkeep_v1';
+const DAY_MS = 86400000;
+
+function loadSubs(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  }catch(e){ return []; }
+}
+function saveSubs(subs){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(subs));
+}
+let subs = loadSubs();
+
+function todayStart(){
+  const d = new Date();
+  d.setHours(0,0,0,0);
+  return d;
+}
+function parseDate(str){
+  const d = new Date(str + 'T00:00:00');
+  return d;
+}
+function daysLeft(dateStr){
+  const target = parseDate(dateStr);
+  return Math.round((target - todayStart()) / DAY_MS);
+}
+function monthlyTWD(sub){
+  const amt = sub.currency === 'USD' ? sub.amount * FX_USD_TO_TWD : sub.amount;
+  return sub.cycle === 'yearly' ? amt / 12 : amt;
+}
+function fmtTWD(n){
+  return 'TWD ' + Math.round(n).toLocaleString('en-US');
+}
+
+function render(){
+  // dashboard
+  let active = 0, savings = 0, trialCount = 0;
+  subs.forEach(s=>{
+    if(s.cycle === 'trial') trialCount++;
+    const m = monthlyTWD(s);
+    if(s.status === 'active') active += m;
+    else savings += m;
+  });
+  document.getElementById('statActive').textContent = fmtTWD(active);
+  document.getElementById('statSavings').textContent = fmtTWD(savings);
+  document.getElementById('statTrial').textContent = trialCount;
+
+  // list
+  const listEl = document.getElementById('list');
+  listEl.innerHTML = '';
+  if(subs.length === 0){
+    listEl.innerHTML = `<div class="empty">
+      <div class="empty-title">存摺還是空的</div>
+      <div>新增第一筆訂閱，開始掌握每月自動扣款</div>
+    </div>`;
+    return;
+  }
+
+  const sorted = [...subs].sort((a,b)=> parseDate(a.date) - parseDate(b.date));
+
+  sorted.forEach(s=>{
+    const dl = daysLeft(s.date);
+    const isExpired = dl < 0;
+    const isTrial = s.cycle === 'trial';
+    let badge = '';
+    if(isTrial){
+      if(isExpired){
+        badge = s.status === 'active'
+          ? `<span class="badge trial">試用已結束・已續訂</span>`
+          : `<span class="badge expired">試用已結束・已取消</span>`;
+      } else if(dl <= 3){
+        badge = `<span class="badge danger">試用即將到期（剩餘 ${dl} 天）</span>`;
+      } else {
+        badge = `<span class="badge trial">試用中</span>`;
+      }
+    } else if(isExpired){
+      badge = `<span class="badge expired">已到期／需確認續訂</span>`;
+    } else if(dl <= 7){
+      badge = `<span class="badge warn">即將扣款（剩餘 ${dl} 天）</span>`;
+    }
+
+    const cycleLabel = isTrial ? (isExpired ? '原免費試用' : '免費試用') : (s.cycle === 'yearly' ? '按年' : '按月');
+    const dateLabel = isTrial ? '試用到期' : '下次扣款';
+    const daysText = isExpired ? '已到期' : `剩餘 ${dl} 天`;
+    const toggleLabel = s.status === 'active' ? '續訂中' : '打算取消';
+
+    const el = document.createElement('div');
+    el.className = 'ticket' + (s.status === 'cancel_pending' ? ' pending' : '');
+    el.innerHTML = `
+      ${s.status === 'cancel_pending' ? '<div class="stamp">預計停用</div>' : ''}
+      <div class="ticket-main">
+        <div class="ticket-top">
+          <span class="service-name">${escapeHtml(s.name)}</span>
+          <span class="cycle-tag">${cycleLabel}</span>
+          ${badge}
+        </div>
+        <div class="meta-row">${dateLabel}：${s.date}（${daysText}）</div>
+        <div class="icon-row">
+          <button class="icon-btn" onclick="editSub('${s.id}')">✎ 編輯</button>
+          <button class="icon-btn danger-hover" onclick="deleteSub('${s.id}')">🗑 刪除</button>
+          <button class="icon-btn" onclick="exportIcs('${s.id}')">⇩ 匯出 .ics</button>
+        </div>
+      </div>
+      <div class="ticket-stub">
+        <div class="stub-amount mono">${s.currency} ${s.amount.toLocaleString('en-US')}<small>${cycleLabel}</small></div>
+        <button class="toggle ${s.status==='active' ? 'on' : ''}" onclick="toggleStatus('${s.id}')" aria-label="切換續訂狀態">
+          <div class="knob"></div>
+        </button>
+        <div class="toggle-label">${toggleLabel}</div>
+      </div>
+    `;
+    listEl.appendChild(el);
+  });
+}
+
+function escapeHtml(str){
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+function toggleStatus(id){
+  const s = subs.find(x=>x.id===id);
+  if(!s) return;
+  s.status = s.status === 'active' ? 'cancel_pending' : 'active';
+  saveSubs(subs);
+  render();
+}
+
+function deleteSub(id){
+  if(!confirm('確定要刪除這筆訂閱嗎？此動作無法復原。')) return;
+  subs = subs.filter(x=>x.id!==id);
+  saveSubs(subs);
+  render();
+}
+
+function editSub(id){
+  const s = subs.find(x=>x.id===id);
+  if(!s) return;
+  document.getElementById('modalTitle').textContent = '編輯訂閱';
+  document.getElementById('editId').value = s.id;
+  document.getElementById('fName').value = s.name;
+  document.getElementById('fAmount').value = s.amount;
+  document.getElementById('fCurrency').value = s.currency;
+  document.getElementById('fCycle').value = s.cycle;
+  document.getElementById('fDate').value = s.date;
+  onCycleChange();
+  clearErrors();
+  document.getElementById('overlay').classList.add('show');
+}
+
+function onCycleChange(){
+  const cycle = document.getElementById('fCycle').value;
+  document.getElementById('dateLabel').textContent = cycle === 'trial' ? '試用期結束日' : '下次扣款日';
+}
+
+function openModal(){
+  document.getElementById('modalTitle').textContent = '新增訂閱';
+  document.getElementById('subForm').reset();
+  document.getElementById('editId').value = '';
+  onCycleChange();
+  clearErrors();
+  document.getElementById('overlay').classList.add('show');
+}
+function closeModal(){
+  document.getElementById('overlay').classList.remove('show');
+}
+document.getElementById('overlay').addEventListener('click', (e)=>{
+  if(e.target.id === 'overlay') closeModal();
+});
+
+function clearErrors(){
+  document.getElementById('errName').classList.remove('show');
+  document.getElementById('errAmount').classList.remove('show');
+  document.getElementById('errDate').classList.remove('show');
+}
+
+document.getElementById('subForm').addEventListener('submit', function(e){
+  e.preventDefault();
+  clearErrors();
+  const name = document.getElementById('fName').value.trim();
+  const amountRaw = document.getElementById('fAmount').value.trim();
+  const amount = parseFloat(amountRaw);
+  const currency = document.getElementById('fCurrency').value;
+  const cycle = document.getElementById('fCycle').value;
+  const date = document.getElementById('fDate').value;
+  const editId = document.getElementById('editId').value;
+
+  let valid = true;
+  if(!name){
+    document.getElementById('errName').classList.add('show');
+    valid = false;
+  }
+  if(!amountRaw || isNaN(amount) || amount <= 0){
+    document.getElementById('errAmount').classList.add('show');
+    valid = false;
+  }
+  if(!date){
+    document.getElementById('errDate').classList.add('show');
+    valid = false;
+  }
+  if(!valid) return;
+
+  if(editId){
+    const s = subs.find(x=>x.id===editId);
+    Object.assign(s, {name, amount, currency, cycle, date});
+  } else {
+    subs.push({
+      id: 'sub_' + Date.now() + '_' + Math.random().toString(36).slice(2,7),
+      name, amount, currency, cycle, date,
+      status: 'active'
+    });
+  }
+  saveSubs(subs);
+  closeModal();
+  render();
+});
+
+function exportIcs(id){
+  const s = subs.find(x=>x.id===id);
+  if(!s) return;
+  const dt = s.date.replace(/-/g,'');
+  const summary = s.cycle === 'trial' ? `${s.name} 試用期即將結束` : `${s.name} 訂閱扣款提醒`;
+  const ics = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//SubKeep//Local//ZH',
+    'BEGIN:VEVENT',
+    'UID:' + s.id + '@subkeep.local',
+    'DTSTAMP:' + new Date().toISOString().replace(/[-:]/g,'').split('.')[0] + 'Z',
+    'DTSTART;VALUE=DATE:' + dt,
+    'DTEND;VALUE=DATE:' + dt,
+    'SUMMARY:' + summary,
+    'DESCRIPTION:金額 ' + s.currency + ' ' + s.amount + '，由 SubKeep 本機提醒產生',
+    'END:VEVENT',
+    'END:VCALENDAR'
+  ].join('\r\n');
+  const blob = new Blob([ics], {type:'text/calendar'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'reminder.ics';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+render();
+</script>
+</body>
+</html>

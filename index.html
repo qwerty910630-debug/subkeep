@@ -98,8 +98,51 @@
   .stat.savings .stat-value{color:var(--plum);}
   .stat.trial .stat-value{color:var(--steel);}
 
+  /* ===== Alert wall ===== */
+  .alert-wall{padding:0 26px 4px;}
+  .alert-title-row{display:flex;align-items:center;gap:10px;margin:6px 0 10px;}
+  .alert-title{
+    font-size:15px;
+    color:var(--amber);font-weight:700;margin:0;
+  }
+  .alert-count{
+    min-width:22px;height:22px;padding:0 6px;border-radius:20px;
+    background:var(--paper);color:var(--ink);
+    font-size:12px;font-weight:700;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .alert-box{
+    background:var(--paper-2);border-radius:12px;padding:16px;
+  }
+  .alert-empty{
+    text-align:center;color:var(--text-on-paper-dim);font-size:13.5px;padding:14px 10px;
+  }
+  .alert-grid{display:flex;flex-direction:column;gap:8px;}
+  .alert-item{
+    display:flex;align-items:center;gap:10px;
+    background:#fff;border-radius:10px;padding:10px 14px;
+    border-left:4px solid var(--amber);
+    box-shadow:0 1px 4px rgba(0,0,0,0.06);
+  }
+  .alert-item.danger{border-left-color:var(--red);}
+  .alert-dot{
+    width:8px;height:8px;border-radius:50%;background:var(--amber);flex-shrink:0;
+  }
+  .alert-item.danger .alert-dot{background:var(--red);}
+  .alert-name{font-weight:700;font-size:14px;color:var(--text-on-paper);flex-shrink:0;}
+  .alert-detail{font-size:12.5px;color:var(--text-on-paper-dim);flex:1;min-width:0;}
+  .alert-days{
+    font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;
+    background:#FBEFD9;color:var(--amber);flex-shrink:0;
+  }
+  .alert-item.danger .alert-days{background:#F7DEDE;color:var(--red);}
+
   /* ===== List ===== */
-  .list{padding:20px 26px 30px;display:flex;flex-direction:column;gap:14px;}
+  .list-title{
+    font-size:15px;color:var(--amber);font-weight:700;
+    margin:18px 26px 10px;
+  }
+  .list{padding:0 26px 30px;display:flex;flex-direction:column;gap:14px;}
   .empty{
     text-align:center;padding:50px 20px;color:var(--text-on-paper-dim);
   }
@@ -246,6 +289,16 @@
         </div>
       </div>
     </div>
+    <div class="alert-wall" id="alertWall">
+      <div class="alert-title-row">
+        <p class="alert-title">到期與試用期警示牆</p>
+        <span class="alert-count" id="alertCount">0</span>
+      </div>
+      <div class="alert-box">
+        <div class="alert-grid" id="alertGrid"></div>
+      </div>
+    </div>
+    <p class="list-title">我的訂閱</p>
     <div class="list" id="list"></div>
   </div>
 </div>
@@ -355,6 +408,48 @@ function render(){
   document.getElementById('statActive').textContent = fmtTWD(active);
   document.getElementById('statSavings').textContent = fmtTWD(savings);
   document.getElementById('statTrial').textContent = trialCount;
+
+  // alert wall: 即將扣款（一般訂閱）與 即將到期（試用中）
+  const alerts = [];
+  subs.forEach(s=>{
+    if(s.status !== 'active') return;
+    const dl = daysLeft(s.date);
+    if(s.cycle === 'trial'){
+      if(dl >= 0 && dl <= 3){
+        alerts.push({
+          id:s.id, level:'danger', dl,
+          name:s.name,
+          detail:`試用到期：${s.date}`
+        });
+      }
+    } else {
+      if(dl >= 0 && dl <= 7){
+        alerts.push({
+          id:s.id, level:'warn', dl,
+          name:s.name,
+          detail:`${s.currency} ${s.amount.toLocaleString('en-US')}　扣款日：${s.date}`
+        });
+      }
+    }
+  });
+  alerts.sort((a,b)=> a.dl - b.dl);
+  document.getElementById('alertCount').textContent = alerts.length;
+  const alertGridEl = document.getElementById('alertGrid');
+  if(alerts.length === 0){
+    alertGridEl.innerHTML = `<div class="alert-empty">目前沒有即將到期或即將扣款的項目</div>`;
+  } else {
+    alertGridEl.innerHTML = alerts.map(a=>{
+      const daysText = a.dl === 0 ? '今天' : `剩餘 ${a.dl} 天`;
+      const kindText = a.level === 'danger' ? '試用即將到期' : '即將扣款';
+      return `
+        <div class="alert-item ${a.level}">
+          <span class="alert-dot"></span>
+          <span class="alert-name">${escapeHtml(a.name)}</span>
+          <span class="alert-detail">${kindText}・${escapeHtml(a.detail)}</span>
+          <span class="alert-days">${daysText}</span>
+        </div>`;
+    }).join('');
+  }
 
   // list
   const listEl = document.getElementById('list');
